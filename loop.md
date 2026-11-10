@@ -43,7 +43,7 @@ For ML repos, also locate the trainer, preprocessing, split definitions, model a
 
 Verify the active vendor's prerequisites and session persistence before preparing the handoff. If a required capability is unavailable, finish any runnable baseline and report the missing prerequisite; do not invent tools or claim an optimization run occurred. Check existing eval commands for writes and external effects before execution; use test services and fixtures for state-changing tasks.
 
-When preparing files for an optimization run, start from the intended revision in a clean, isolated `autoresearch/<goal>` worktree before writing the eval setup. Preserve unrelated user edits and active sessions. Keep only the intended setup changes in that worktree; never stash, reset or commit unrelated work to satisfy that requirement.
+Before modifying the target repo, create a dedicated task branch such as `autoresearch/<goal>` from the intended revision in a clean, isolated worktree. Do not edit on the default branch, another task's branch or a detached HEAD. On resume, verify and reuse the session's recorded branch and worktree. Record the branch, worktree path and starting revision in the evaluation report. Preserve unrelated user edits and active sessions; never stash, reset or commit unrelated work to satisfy the clean-worktree requirement.
 
 Research uncertainties that affect the chosen evaluation or diagnosis. Start with repo code, traces and contracts; consult version-matched official docs or upstream source where needed. Record the evidence behind decisions, distinguish facts from hypotheses, and report unavailable evidence instead of guessing. Keep private repo content and credentials out of external searches.
 
@@ -59,6 +59,8 @@ Use the bundled pstack skills as research references where relevant: `how` for c
 | Neither | Bootstrap a small runnable suite using the repo's language, test runner and layout. Mine available traces for inputs, then build cases from authoritative sources, tool contracts, or controlled fixtures. Clearly mark synthetic cases. |
 
 Extend the existing setup in place. Add a new framework only if the repo cannot support the selected test with a small adapter. If existing evaluation is component-only, retain it and add the smallest end-to-end path needed for the selected behavior.
+
+Keep setup and candidate code small. Reuse existing helpers, the standard library and installed packages before adding code or dependencies. Within the declared edit scope, remove proven-unused code and unnecessary wrappers; consolidate repeated logic only when its behavior and contracts match. Check callers, exports, configuration, tests and dynamic entry points before deleting. Preserve required behavior, validation and error handling, and update affected callers and tests. Avoid speculative abstractions and unrelated cleanup. Run focused regression checks; fewer lines alone do not prove better performance.
 
 ## 2. Choose and apply a benchmark design
 
@@ -137,6 +139,8 @@ For `train`, the report and vendor run history also record the split/seed policy
 Smoke-test `bash autoresearch.sh` before handoff. Use the selected vendor adapter to activate a prepared run, research and choose the next hypothesis, execute bounded trials, record outcomes, and keep or discard changes. If experiments were already requested and prerequisites are available, continue without a second confirmation; otherwise return the exact activation instruction. Count failed candidates toward the finite iteration cap. Never restart a session to bypass exhausted limits.
 
 Keep changes only after the predeclared improvement and regression checks pass. Correctness failures, invalid metrics, crashes and timeouts cannot win. If a harness or measurement revision is necessary, finish it as a separate measurement change and establish comparable baselines in a new segment without resetting the overall budget. Stop at the declared target, iteration/resource limit, cancellation, or a missing prerequisite; do not present an unmeasured candidate as a winner.
+
+Commit verified setup and each accepted candidate separately through the vendor's normal mechanism. Follow the repo's commit convention: use a specific subject describing the change and a short body explaining why, checks run and results, including the trial metric for candidates. Review the diff before committing; include only task-owned paths, whether staged manually or committed by native tools. Record the resulting commit hashes in the evaluation report; retain rejected trials as run-history evidence.
 
 Smoke-test the measurement and any checks before calling the setup ready. Summarize the reused or added files, selected benchmark profile, evidence and diagnosis, reference corrections, baseline revision and scores, invalid cases, editable paths, and the exact next command. After a requested optimization run, report the baseline and winner on the same suite, final holdout results if available, and the exact changes that earned the improvement. If no candidate meets the acceptance rule, report the baseline and the experiments tried.
 

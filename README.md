@@ -93,13 +93,13 @@ If those prerequisites are missing, Codex can inspect the repo and establish a b
 ## What the loop measures
 
 1. Inspect the target repo's instructions, entry point or trainer, data generation, critique stages, evals, traces, prompts and tools.
-2. Reuse its runner, datasets and graders. Add only missing coverage in its existing conventions.
+2. Reuse its runner, datasets, graders and code helpers. Add only missing coverage; keep code small by removing proven-unused code and consolidating repetition within scope, preserving behavior and validation.
 3. Independently audit data and references, verify splits and metrics, test the grader, and measure the unchanged system within its resource budget.
 4. Diagnose whether the failure comes from data, prompts, tools, orchestration or training before choosing one edit.
 5. Prepare and smoke-test `autoresearch.sh` plus an evaluation report with the metric, scope, acceptance rule, checks, budgets and finite iteration cap (five candidates by default).
 6. When requested, research the next hypothesis through the vendor adapter, change one scoped candidate, measure it, record the result, and keep or discard it. Stop at the target, cap, resource limit, cancellation or missing prerequisite.
 
-Preparation and search run in a clean isolated worktree, preserving unrelated user work. Freeze the harness, grader, datasets and scoring settings while optimizing the application. A declared edit scope does not enforce filesystem access; the workflow checks scope and rejects out-of-scope changes. Required correctness and regression checks must pass before emitting a primary metric. If no candidate earns an improvement, retain the verified baseline.
+Modifications run on a dedicated task branch in a clean isolated worktree, preserving unrelated user work. Commit verified setup and accepted candidates separately, with messages describing the change, reason and check results; record the branch and commit hashes in the report. Freeze the harness, grader, datasets and scoring settings while optimizing the application. A declared edit scope does not enforce filesystem access; the workflow checks scope and rejects out-of-scope changes. Required correctness and regression checks must pass before emitting a primary metric. If no candidate earns an improvement, retain the verified baseline.
 
 Existing self-critique does not make generated data trustworthy. Audit source evidence, answerability, labels, duplicates, leakage and coverage; probe whether the critic accepts wrong or unsupported answers. `dataset` mode keeps the application fixed while repairing and versioning generation, critique, references or graders. Independently recheck a small replacement slice before wider generation and rerun comparable baselines after measurement changes. Reports disclose sampling and evidence limits.
 

@@ -1,15 +1,39 @@
----
-description: Audit datasets, evaluate agents or ML training, and prepare OMP's built-in autoresearch
-argument-hint: "[auto|eval|dataset|prompt|tool|tool+prompt|agent|train] [optional focus, paths, or public benchmark]"
----
+# LOOP.md — Agent and ML Performance Loop
 
-# Evaluate and improve the agent or ML pipeline in this repository
+This is the shared workflow for skyeval's two vendors: Pi-agent through Oh My Pi (OMP), and Codex. It improves the **target repository's** agentic application or ML stack, not this prompt package.
 
-Request: $ARGUMENTS
+## Active loop
+
+- **Trigger:** `/skill:agent-eval` in OMP or `$agent-eval` in Codex. Preparation is the default; an explicit request to run starts bounded automatic iteration.
+- **Goal:** improve a declared quality, latency, cost or validation metric while required correctness and regression checks pass.
+- **Cadence:** one hypothesis per trial, at most five candidate trials by default. Baselines, research, repeats and final evaluation all consume the declared resource budget.
+- **State:** the target repo's evaluation report (default `eval-report.md`), frozen `autoresearch.sh`, and vendor run history. Resume existing state instead of resetting counters.
+- **Vendors:** [Pi-agent / OMP](vendors/pi-agent.md) uses native autoresearch; [Codex](vendors/codex.md) uses local tools and consults ChatGPT Search or Deep Research through computer use when choosing the next experiment.
+- **Handoff:** report missing evidence, tools, sign-in or resource limits. A failed or inconclusive search leaves the verified baseline as the result.
+
+```mermaid
+flowchart TD
+    A[Inspect repo and audit data] --> B[Verify grader and measure baseline]
+    B --> C{Run requested and budget available?}
+    C -- No --> D[Report preparation or best measured result]
+    C -- Yes --> E[Research and choose one hypothesis via vendor adapter]
+    E --> F[Edit within scope in isolated worktree]
+    F --> G[Run frozen harness and regression checks]
+    G --> H{Valid measured improvement?}
+    H -- Yes --> I[Keep candidate and preserve artifacts]
+    H -- No --> J[Discard candidate and preserve evidence]
+    I --> K[Record outcome and remaining budget]
+    J --> K
+    K --> L{Target reached or stop condition?}
+    L -- Yes --> D
+    L -- No --> C
+```
+
+## Operating contract
 
 You are running inside the target repository. This installed package supplies the workflow; it is not the application to evaluate. Use the current working directory and its normal agent entry point or ML training and evaluation commands. If that directory is this prompt package or the target is ambiguous, resolve the target before writing files or running an eval. The optional first word selects a mode. Default to `auto`. Other arguments are hints, such as a trace, QA file, failing case, training config, eval command, or public benchmark. Discover paths and conventions from the repo. Produce a runnable baseline and a targeted next step. Prepare the optimization session when the selected mode calls for one. An explicit request to run experiments authorizes the scoped optimization loop within its declared resource budget; otherwise stop after preparation.
 
-The host is Oh My Pi (`omp`). Use its built-in `/autoresearch` command and tools `init_experiment`, `run_experiment`, `log_experiment`, and `update_notes`. The benchmark entry point is `bash autoresearch.sh`; OMP manages session notes, run history and artifacts. Use the installed native schemas and preserve any existing session before preparing another one.
+Use the vendor adapter selected by the entry point for research, execution, persistence and stopping. Both vendors use `bash autoresearch.sh` as the measurement entry point and the same acceptance rules below. Preserve existing sessions and artifacts.
 
 ## 1. Inventory and reuse
 
@@ -17,13 +41,13 @@ Read repo instructions, startup commands, test conventions, and the path from us
 
 For ML repos, also locate the trainer, preprocessing, split definitions, model and optimizer configs, checkpoints, validation metrics and artifact store. Reuse the existing training framework. Before any training run, record available hardware and finite per-trial and total compute/time limits from the request or existing project budget. If no usable budget is established, prepare the commands and report the missing limit instead of starting an unbounded job.
 
-Inspect the installed OMP documentation before preparing the handoff. Verify native command and tool registration, the harness contract and session persistence. If built-in autoresearch is unavailable, finish any runnable baseline and report the missing prerequisite; do not invent experiment tools or claim an optimization run occurred. Check existing eval commands for writes and external effects before execution; use test services and fixtures for state-changing tasks.
+Verify the active vendor's prerequisites and session persistence before preparing the handoff. If a required capability is unavailable, finish any runnable baseline and report the missing prerequisite; do not invent tools or claim an optimization run occurred. Check existing eval commands for writes and external effects before execution; use test services and fixtures for state-changing tasks.
 
-When preparing files for an optimization run, start from the intended revision on a clean, isolated `autoresearch/<goal>` branch or worktree before writing the eval setup. Preserve unrelated user edits and active sessions. OMP requires a clean checkout to create a new autoresearch branch and may commit all pending harness setup during initialization. Keep only the intended setup changes in that worktree; never stash, reset or commit unrelated work to satisfy that requirement.
+When preparing files for an optimization run, start from the intended revision in a clean, isolated `autoresearch/<goal>` worktree before writing the eval setup. Preserve unrelated user edits and active sessions. Keep only the intended setup changes in that worktree; never stash, reset or commit unrelated work to satisfy that requirement.
 
 Research uncertainties that affect the chosen evaluation or diagnosis. Start with repo code, traces and contracts; consult version-matched official docs or upstream source where needed. Record the evidence behind decisions, distinguish facts from hypotheses, and report unavailable evidence instead of guessing. Keep private repo content and credentials out of external searches.
 
-Use the bundled pstack skills as research references where relevant: `how` for code flow, `why` for design evidence, and `benchmark-checklist` for performance claims. Locate their files through OMP's skill discovery; paths are relative to this installed package, not the target repo. Read only what the task needs. Adapt Cursor-specific tools, model names and subagent instructions to capabilities actually available in OMP, or report the missing capability. Keep this workflow's dataset validation, edit boundaries and finite experiment cap; do not activate pstack setup, shipping or autopilot workflows merely by loading these references.
+Use the bundled pstack skills as research references where relevant: `how` for code flow, `why` for design evidence, and `benchmark-checklist` for performance claims. Locate their files through the active vendor's skill discovery; paths are relative to this installed package, not the target repo. Read only what the task needs. Adapt Cursor-specific tools, model names and subagent instructions to capabilities actually available in the active vendor, or report the missing capability. Keep this workflow's dataset validation, edit boundaries and finite experiment cap; do not activate pstack setup, shipping or autopilot workflows merely by loading these references.
 
 | What the repository has | What to do |
 |---|---|
@@ -77,7 +101,7 @@ Run the unchanged application or budgeted training pipeline on the chosen slice.
 
 | Mode | When to use it and what to change |
 |---|---|
-| `eval` | Discover or implement coverage and run a baseline. Prepare an OMP handoff if the suite is ready. |
+| `eval` | Discover or implement coverage and run a baseline. Prepare the active vendor's handoff if the suite is ready. |
 | `dataset` | Repair ambiguous questions, stale or wrong references, missing cases, generation instructions or workflows, critique/filtering defects, or graders. Keep the evaluated application's behavior fixed; allowlist only the measurement and generation paths needed for the repair. Version the suite and log old and new expectations, the evidence for each correction, and exclusions. Audit regenerated cases before rerunning the same app on the new suite. Attribute score shifts to the measurement revision. |
 | `prompt` | Valid tools and evidence were available, but selection, instruction-following, or synthesis failed. Edit only the named prompt or tool description. |
 | `tool` | A direct probe shows a contract, retrieval, normalization, error-handling, or implementation defect. Change the smallest supported tool surface and run its focused regression checks. |
@@ -92,7 +116,7 @@ Treat corrections to reference answers and corrections to the agent's behavior a
 
 Evaluate the real entry point from the active checkout. For a service, launch or reload a candidate instance and verify its revision or config. Use fresh sessions and isolated writable state. Pin model and judge settings, fixtures, and evaluation time where possible. Record live dependencies. Use existing LangSmith or other tracing integrations when configured.
 
-Separate search cases, required regression cases, and a final holdout when coverage permits. Keep variants of the same scenario together. Keep final holdout inputs and results outside OMP's search context. If there is too little independent data, report that limit and describe the score as a focused regression result. Compare baseline and candidate under the same case set, grader, and runtime settings. Repeat apparent wins on noisy or live tasks under the same conditions. For reliability-sensitive tasks, report the fraction of cases that pass every one of a fixed number of fresh trials, alongside the ordinary pass rate.
+Separate search cases, required regression cases, and a final holdout when coverage permits. Keep variants of the same scenario together. Keep final holdout inputs and results outside the optimizing agent's search context. If there is too little independent data, report that limit and describe the score as a focused regression result. Compare baseline and candidate under the same case set, grader, and runtime settings. Repeat apparent wins on noisy or live tasks under the same conditions. For reliability-sensitive tasks, report the fraction of cases that pass every one of a fixed number of fresh trials, alongside the ordinary pass rate.
 
 For ML training, apply these controls to every experiment:
 
@@ -101,20 +125,18 @@ For ML training, apply these controls to every experiment:
 - Enforce the per-trial and total time/compute limits, memory constraints and iteration cap, including baselines, repeats and final evaluation. Stop when the budget is exhausted. If optimizing speed or cost, require a predeclared validation-quality threshold.
 - Write each trial's checkpoint, config and logs to a unique artifact path, recording the code/data revisions and initialization. Verify training occurred and evaluate that trial's checkpoint; never reuse stale metrics or checkpoints. Invalid or non-finite results, out-of-memory errors and interrupted runs receive a failed status, not a success metric. Preserve the baseline and best artifacts across code reverts; never overwrite a user's checkpoint or deploy a model as part of this loop.
 
-Prepare the native harness and evaluation report in the isolated worktree:
+Prepare the shared harness and evaluation report in the isolated worktree:
 
 - **`autoresearch.sh`** invokes the frozen eval against the candidate and runs focused correctness, regression and editable-path checks. Exit nonzero for a missing candidate, broken fixture/grader, empty scored suite or failed check. Emit one primary line such as `METRIC qa_pass_rate=0.72` only after validity and correctness checks pass. Include scored, passed and invalid counts, failed case IDs, grader reasons and trace references. Keep workload timing separate from check timing when speed is the objective. An agent timeout can be a task failure when the app contract defines a deadline and the runner is healthy.
-- **Evaluation report** uses the repo's report location, or `eval-report.md` when none exists. Record the audit evidence, diagnosed failure, objective, metric direction, baseline, exact editable and protected paths, acceptance rule, required checks, resource limits, stop conditions and a finite iteration cap, defaulting to five. This is the reviewable preparation artifact; OMP will store the active experiment playbook through `update_notes` once initialized.
+- **Evaluation report** uses the repo's report location, or `eval-report.md` when none exists. Record the audit evidence, diagnosed failure, objective, metric direction, baseline, exact editable and protected paths, acceptance rule, required checks, resource limits, stop conditions and a finite iteration cap, defaulting to five. This is the reviewable preparation artifact; persist the active playbook using the vendor adapter once initialized.
 
-Freeze the harness, runner, grader, datasets, fixtures and scoring settings during candidate search. Validate candidate changes against the editable paths before accepting them. OMP's `scope_paths` and `off_limits` record deviations rather than enforcing filesystem protection; prefer checks controlled outside the editable worktree and disclose any boundary enforced only by instructions. Reject out-of-scope changes instead of using a justification to bypass this workflow's boundary. Keep baseline setup committed before evaluating candidates so discard cannot remove it. Store valuable checkpoints and logs outside paths that native Git cleanup may remove.
+Freeze the harness, runner, grader, datasets, fixtures and scoring settings during candidate search. Validate candidate changes against the editable paths before accepting them. A declared edit scope is not filesystem protection; prefer checks controlled outside the editable worktree and disclose any boundary enforced only by instructions. Reject out-of-scope changes instead of using a justification to bypass this workflow's boundary. Keep baseline setup committed before evaluating candidates so discard cannot remove it. Store valuable checkpoints and logs outside paths that candidate cleanup may remove.
 
-For `train`, the report and native notes also record the split/seed policy, initialization, validation objective, checkpoint selection, artifact locations and resource limits. `autoresearch.sh` runs the bounded repo-native trainer and evaluates its fresh checkpoint on validation data, emitting the chosen metric (for example `METRIC val_loss=...`) only after validity checks. Enforce budgets through the runner or harness. The test-set evaluation is a separate final command outside the search harness.
+For `train`, the report and vendor run history also record the split/seed policy, initialization, validation objective, checkpoint selection, artifact locations and resource limits. `autoresearch.sh` runs the bounded repo-native trainer and evaluates its fresh checkpoint on validation data, emitting the chosen metric (for example `METRIC val_loss=...`) only after validity checks. Enforce budgets through the runner or harness. The test-set evaluation is a separate final command outside the search harness.
 
-Smoke-test `bash autoresearch.sh` before handoff. Return `/autoresearch use the prepared autoresearch.sh and eval-report.md; max_iterations=5`, substituting the actual report path and agreed cap. If the user already requested experiments and native tools are active, continue without a second confirmation. If activation requires a user-entered command, finish preparation and report that command as the remaining prerequisite.
+Smoke-test `bash autoresearch.sh` before handoff. Use the selected vendor adapter to activate a prepared run, research and choose the next hypothesis, execute bounded trials, record outcomes, and keep or discard changes. If experiments were already requested and prerequisites are available, continue without a second confirmation; otherwise return the exact activation instruction. Count failed candidates toward the finite iteration cap. Never restart a session to bypass exhausted limits.
 
-Once active, call `init_experiment` with `primary_metric`, `direction`, `scope_paths`, `off_limits`, `constraints`, and `max_iterations` from the reviewed plan, using the installed schema. Verify the setup is in the baseline, then persist the playbook with `update_notes`. Use `run_experiment` to run the fixed harness, with a bounded `timeout_seconds`, and `log_experiment` to record baseline, candidate and failed runs. Use `checks_failed` for correctness failures and `crash` for infrastructure or training failures; never keep them. Keep changes only after the predeclared improvement and regression checks pass. Update notes with hypotheses and evidence as work proceeds.
-
-OMP manages run history and artifacts outside the target repo. Use its native notes and state instead of creating a parallel `.auto/` layout or legacy `autoresearch.md`, `autoresearch.jsonl` or `autoresearch.config.json` files. If a harness or measurement revision is necessary, finish it as a separate measurement change and establish comparable baselines in a new segment. Do not reinitialize to bypass the agreed cap or exhausted resource budget. Stop with `/autoresearch off` at a declared stop condition; do not present an unmeasured candidate as a winner.
+Keep changes only after the predeclared improvement and regression checks pass. Correctness failures, invalid metrics, crashes and timeouts cannot win. If a harness or measurement revision is necessary, finish it as a separate measurement change and establish comparable baselines in a new segment without resetting the overall budget. Stop at the declared target, iteration/resource limit, cancellation, or a missing prerequisite; do not present an unmeasured candidate as a winner.
 
 Smoke-test the measurement and any checks before calling the setup ready. Summarize the reused or added files, selected benchmark profile, evidence and diagnosis, reference corrections, baseline revision and scores, invalid cases, editable paths, and the exact next command. After a requested optimization run, report the baseline and winner on the same suite, final holdout results if available, and the exact changes that earned the improvement. If no candidate meets the acceptance rule, report the baseline and the experiments tried.
 
@@ -133,5 +155,3 @@ For training, also report baseline and winner validation metrics at the same bud
 - τ-bench task outcomes and evaluator components: https://github.com/sierra-research/tau2-bench/blob/main/src/tau2/evaluator/evaluator.py
 - Mind2Web 2 correctness and source attribution: https://osu-nlp-group.github.io/Mind2Web-2/
 - EvalGen for proposing and calibrating graders: https://arxiv.org/abs/2404.12272
-- OMP built-in harness setup: https://github.com/can1357/oh-my-pi/blob/main/packages/coding-agent/src/autoresearch/prompt-setup.md
-- OMP built-in experiment protocol: https://github.com/can1357/oh-my-pi/blob/main/packages/coding-agent/src/autoresearch/prompt.md

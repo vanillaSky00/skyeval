@@ -1,6 +1,10 @@
 {
   "name": "skyeval",
   "version": "0.1.0",
-  "description": "A dataset audit, agent evaluation and ML training workflow for Oh My Pi's built-in autoresearch",
+  "description": "Shared dataset audit, agent evaluation and ML training loops for Pi-agent (Oh My Pi) and Codex",
+  "scripts": {
+    "install:codex": "node scripts/install-codex.mjs",
+    "test": "node --test scripts/install-codex.test.mjs"
+  },
   "omp": {}
 }
